@@ -27,119 +27,128 @@ class ExerciseScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    // 1. ÜST ÖZET KARTLARI (Dinamik Veri Bağlantısı)
-    FutureBuilder<Map<String, dynamic>>(
-      future: _exerciseService.getTodayStats(), // Bugünün toplamlarını getirir
-      builder: (context, snapshot) {
-        // Veriler yüklenene kadar 0 gösterir
-        final stats = snapshot.data ?? {
-          'totalCalories': 0, 
-          'totalMinutes': 0, 
-          'intensity': "Düşük"
-        };
+      body: StreamBuilder<List<ExerciseModel>>(
+        stream: _exerciseService.getExercises(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Bağlantı Hatası: ${snapshot.error}"));
+          }
 
-        return Column(
-          children: [
-            Row(
+          // 1. ANLIK VERİ HESAPLAMA
+          final now = DateTime.now();
+          final allExercises = snapshot.data ?? [];
+          
+          // Bugünün egzersizlerini filtrele
+          final todayActivities = allExercises.where((ex) => 
+            ex.date.year == now.year && 
+            ex.date.month == now.month && 
+            ex.date.day == now.day
+          ).toList();
+
+          int totalCalories = 0;
+          int totalMinutes = 0;
+          bool hasHigh = false;
+          bool hasMedium = false;
+
+          for (var ex in todayActivities) {
+            if (ex.isCompleted) {
+              totalCalories += ex.estimatedCalories;
+              totalMinutes += ex.durationMinutes;
+              // Yoğunluk kontrolü (Büyük/Küçük harf duyarsız)
+              String level = ex.intensityLevel.toLowerCase();
+              if (level.contains("yüksek")) hasHigh = true;
+              else if (level.contains("orta")) hasMedium = true;
+            }
+          }
+
+          String intensity = "---";
+          if (hasHigh) intensity = "Yüksek";
+          else if (hasMedium) intensity = "Orta";
+          else if (todayActivities.isNotEmpty) intensity = "Düşük";
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // YAKILAN KALORİ KARTI
-                Expanded(
-                  child: ExerciseSummaryCard(
-                    value: "${stats['totalCalories']}", 
-                    label: "YAKILAN (KCAL)", 
-                    icon: Icons.local_fire_department, // Görseldeki alev ikonu
-                  ),
+                // 1. ÜST ÖZET KARTLARI
+                Row(
+                  children: [
+                    Expanded(
+                      child: ExerciseSummaryCard(
+                        value: "$totalCalories", 
+                        label: "YAKILAN (KCAL)", 
+                        icon: Icons.local_fire_department,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ExerciseSummaryCard(
+                        value: "$totalMinutes dk", 
+                        label: "SÜRE", 
+                        icon: Icons.timer,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                // SÜRE KARTI
-                Expanded(
-                  child: ExerciseSummaryCard(
-                    value: "${stats['totalMinutes']} dk", 
-                    label: "SÜRE", 
-                    icon: Icons.timer, // Görseldeki kronometre ikonu
-                  ),
+                const SizedBox(height: 12),
+                ExerciseSummaryCard(
+                  value: intensity, 
+                  label: "GÜN İÇİ YOĞUNLUK", 
+                  icon: Icons.favorite,
+                  isFullWidth: true,
                 ),
+                
+                const SizedBox(height: 24),
+                // Grafiği de anlık güncellenecek yeni haliyle çağırıyoruz
+                const ExerciseChart(),
+
+                const SizedBox(height: 24),
+                const SugarWarningCard(),
+                
+                const SizedBox(height: 24),
+                const Text(
+                  "Bugünkü Hareketlerin", 
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.secondary)
+                ),
+                const SizedBox(height: 12),
+
+                // 2. BUGÜNKÜ EGZERSİZ LİSTESİ
+                if (todayActivities.isEmpty) 
+                  _buildEmptyState()
+                else 
+                  Column(
+                    children: todayActivities.map((exercise) {
+                      return ExerciseActivityTile(
+                        title: exercise.activityName,
+                        subtitle: "${exercise.durationMinutes} dk - ${exercise.intensityLevel}",
+                        calories: "${exercise.estimatedCalories}",
+                        icon: exercise.activityIcon, 
+                        isCompleted: exercise.isCompleted,
+                        duration: exercise.durationMinutes,
+                        exerciseId: exercise.id,
+                        initialSugar: exercise.glucoseBefore,
+                      );
+                    }).toList(),
+                  ),
+
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (context) => const ExerciseHistoryScreen())
+                  ),
+                  child: _buildHistoryButton(),
+                ),
+                const SizedBox(height: 100),
               ],
             ),
-            const SizedBox(height: 12),
-            // GÜN İÇİ YOĞUNLUK KARTI (Tam Genişlik)
-            ExerciseSummaryCard(
-              value: stats['intensity'], 
-              label: "GÜN İÇİ YOĞUNLUK", 
-              icon: Icons.favorite, // Görseldeki kalp ikonu
-              isFullWidth: true,
-            ),
-          ],
-        );
-      },
-    ),
-            const SizedBox(height: 24),
-            const ExerciseChart(),
-
-            const SizedBox(height: 24),
-            const SugarWarningCard(),
-            
-            const SizedBox(height: 24),
-            const Text(
-              "Bugünkü Hareketlerin", 
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.secondary)
-            ),
-            const SizedBox(height: 12),
-
-            // BUGÜNKÜ EGZERSİZ LİSTESİ (VERİTABANI)
-            StreamBuilder<List<ExerciseModel>>(
-              stream: _exerciseService.getExercises(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-                }
-
-                final now = DateTime.now();
-                final todayActivities = snapshot.data?.where((ex) => 
-                  ex.date.year == now.year && 
-                  ex.date.month == now.month && 
-                  ex.date.day == now.day
-                ).toList() ?? [];
-
-                if (todayActivities.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                return Column(
-                  children: todayActivities.map((exercise) {
-                    return ExerciseActivityTile(
-                      title: exercise.activityName,
-                      subtitle: "${exercise.durationMinutes} dk - ${exercise.intensityLevel}",
-                      calories: "${exercise.estimatedCalories}",
-                      icon: exercise.activityIcon, 
-                      isCompleted: exercise.isCompleted,
-                      duration: exercise.durationMinutes,
-                      exerciseId: exercise.id,
-                      initialSugar: exercise.glucoseBefore,
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const ExerciseHistoryScreen())
-              ),
-              child: _buildHistoryButton(),
-            ),
-            const SizedBox(height: 100),
-          ],
-        ),
+          );
+        },
       ),
-      
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
@@ -169,8 +178,8 @@ class ExerciseScreen extends StatelessWidget {
       child: const Column(
         children: [
           Icon(Icons.info_outline, color: Colors.grey),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             "Henüz bugün için bir egzersiz eklemediniz.", 
             style: TextStyle(color: Colors.grey, fontSize: 13)
           ),

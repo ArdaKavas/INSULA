@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/exercise_model.dart';
 
+
 class ExerciseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -18,10 +19,8 @@ class ExerciseService {
           .doc(uid)
           .collection('exercises')
           .add(exercise.toMap());
-      
-    debugPrint("Yeni egzersiz başarıyla eklendi."); // print yerine debugPrint
     } catch (e) {
-      debugPrint("Firestore Kayıt Hatası: $e");
+      debugPrint("Kayıt Hatası: $e");
     }
   }
 
@@ -47,21 +46,29 @@ class ExerciseService {
   }
 
   // 3. Kullanıcının Egzersizlerini Dinleme (Stream)
-  Stream<List<ExerciseModel>> getExercises() {
-    final String? uid = _auth.currentUser?.uid;
-    if (uid == null) return Stream.value([]);
 
+ Stream<List<ExerciseModel>> getExercises() {
+  // authStateChanges() bir Stream'dir.
+  // asyncExpand, kullanıcı değiştiğinde eski dinlemeyi kapatıp yenisini açar.
+  return _auth.authStateChanges().asyncExpand((user) {
+    if (user == null) {
+      return Stream.value([]); // Kullanıcı yoksa boş liste dön.
+    }
+
+    // Kullanıcı varsa o kullanıcıya ait koleksiyonu dinle.
     return _firestore
         .collection('users')
-        .doc(uid)
+        .doc(user.uid)
         .collection('exercises')
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ExerciseModel.fromMap(doc.id, doc.data()))
-            .toList());
-  }
-
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ExerciseModel.fromMap(doc.id, doc.data());
+          }).toList();
+        });
+  });
+}
   // 4. Aylık İstatistikleri ve Karşılaştırmayı Hesaplama
   Future<Map<String, dynamic>> getMonthlyComparison() async {
     final String? uid = _auth.currentUser?.uid;
@@ -114,12 +121,13 @@ class ExerciseService {
     };
   }
 
-  // 5. Günlük Özet Verilerini Hesaplama
-  Future<Map<String, dynamic>> getTodayStats() async {
+ // 5. Günlük Özet Verilerini Hesaplama (Düzeltilmiş)
+ Future<Map<String, dynamic>> getTodayStats() async {
     final String? uid = _auth.currentUser?.uid;
     if (uid == null) return {'totalCalories': 0, 'totalMinutes': 0, 'intensity': "---", 'hasData': false};
 
     final now = DateTime.now();
+    // Günü normalize et (saat/dakika farkından dolayı veri kaçırmamak için)
     final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
 
     final snapshot = await _firestore
@@ -138,14 +146,19 @@ class ExerciseService {
       if (data['isCompleted'] == true) {
         totalCalories += (data['estimatedCalories'] as num? ?? 0).toInt();
         totalMinutes += (data['durationMinutes'] as num? ?? 0).toInt();
-        intensities.add(data['intensityLevel'] ?? "Düşük");
+        
+        // Veriyi küçük harfe çevirerek ekle (karşılaştırmayı kolaylaştırır)
+        String level = (data['intensityLevel'] ?? "düşük").toString().toLowerCase();
+        intensities.add(level);
       }
     }
 
     String dominantIntensity = "---";
-    if (intensities.contains("Yüksek")) {
+    
+    // Veritabanındaki "YÜKSEK YOĞUNLUK" veya "Yüksek" gibi tüm varyasyonları yakalar
+    if (intensities.any((e) => e.contains("yüksek"))) {
       dominantIntensity = "Yüksek";
-    } else if (intensities.contains("Orta")) {
+    } else if (intensities.any((e) => e.contains("orta"))) {
       dominantIntensity = "Orta";
     } else if (intensities.isNotEmpty) {
       dominantIntensity = "Düşük";
@@ -155,39 +168,54 @@ class ExerciseService {
       'totalCalories': totalCalories,
       'totalMinutes': totalMinutes,
       'intensity': dominantIntensity,
-      'hasData': snapshot.docs.any((doc) => doc.data()['isCompleted'] == true),
+      'hasData': intensities.isNotEmpty,
     };
-  }
+ }
 
   // 6. Haftalık Grafik Verilerini Çekme (Son 7 Gün)
-  Future<List<double>> getWeeklyCalories() async {
-    final String? uid = _auth.currentUser?.uid;
-    if (uid == null) return List.filled(7, 0.0);
+  // ExerciseService içindeki ilgili kısmı şu mantıkla güncelle:
+Future<List<double>> getWeeklyCalories() async {
+  final String? uid = _auth.currentUser?.uid;
+  if (uid == null) return List.filled(7, 0.0);
 
+  // 1. Her zaman 7 elemanlı ve içi 0 dolu bir liste ile başla
+  List<double> weeklyValues = List.filled(7, 0.0);
+
+  try {
     final now = DateTime.now();
-    List<double> weeklyData = List.filled(7, 0.0);
-    final sevenDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+    // Bu haftanın Pazartesi gününü bul
+    DateTime startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    
+    String startOfWeekStr = startOfWeek.toIso8601String();
 
-    final snapshot = await _firestore
+    final querySnapshot = await _firestore
         .collection('users')
         .doc(uid)
         .collection('exercises')
-        .where('date', isGreaterThanOrEqualTo: sevenDaysAgo.toIso8601String())
+        .where('date', isGreaterThanOrEqualTo: startOfWeekStr)
         .get();
 
-    for (var doc in snapshot.docs) {
+    for (var doc in querySnapshot.docs) {
       final data = doc.data();
       if (data['isCompleted'] == true) {
-        final date = DateTime.parse(data['date']);
-        final difference = now.difference(date).inDays;
+        // 2. Kayıt tarihini parse et
+        DateTime recordDate = DateTime.parse(data['date']);
         
-        if (difference >= 0 && difference < 7) {
-          // 0: Bugün, 1: Dün ... 6: 7 gün önce. 
-          // Grafikte soldan sağa kronolojik dizmek için 6-difference
-          weeklyData[6 - difference] += (data['estimatedCalories'] as num? ?? 0).toDouble();
+        // 3. DOĞRU İNDEKSİ HESAPLA: Pzt=1, Sal=2... Paz=7
+        // İndeks için 1 çıkarıyoruz (0-6 arası olması için)
+        int dayIndex = recordDate.weekday - 1;
+
+        if (dayIndex >= 0 && dayIndex < 7) {
+          // 4. Veriyi doğrudan o güne yaz, üstüne ekle (o gün birden fazla spor olabilir)
+          weeklyValues[dayIndex] += (data['estimatedCalories'] as num? ?? 0).toDouble();
         }
       }
     }
-    return weeklyData;
+  } catch (e) {
+    debugPrint("Hata: $e");
   }
+  
+  return weeklyValues;
+}
 }

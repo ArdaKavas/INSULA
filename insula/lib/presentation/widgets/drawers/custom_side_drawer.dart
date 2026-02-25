@@ -1,5 +1,6 @@
 // presentation/widgets/custom_side_drawer.dart
 import 'package:flutter/material.dart';
+import 'package:insula/presentation/screens/chatbot_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:insula/logic/viewmodels/auth_viewmodel.dart';
 import 'package:insula/presentation/screens/profile_screen.dart';
@@ -34,7 +35,13 @@ class CustomSideDrawer extends StatelessWidget {
           }),
           _buildDrawerItem(Icons.bar_chart_outlined, "Raporlar", () {}),
           _buildDrawerItem(Icons.settings_outlined, "Ayarlar", () {}),
-          _buildDrawerItem(Icons.smart_toy_outlined, "Chatbot", () {}),
+       
+          _buildDrawerItem(Icons.chat_outlined, "Chatbot", () {
+            // Kapat drawer
+            Navigator.of(context).pop();
+            // Navigate to Profile screen
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChatbotScreen()));
+          }),
           
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),

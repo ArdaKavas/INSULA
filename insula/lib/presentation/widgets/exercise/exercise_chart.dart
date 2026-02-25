@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/services/exercise_service.dart';
+import '../../../data/models/exercise_model.dart';
 
 class ExerciseChart extends StatelessWidget {
   const ExerciseChart({super.key});
@@ -8,27 +9,45 @@ class ExerciseChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> days = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
-    // Dart'ta Pazartesi 1, Pazar 7'dir. Index için 1 çıkarıyoruz.
-    final int todayIndex = DateTime.now().weekday - 1; 
+    final DateTime now = DateTime.now();
+    final int todayIndex = now.weekday - 1; 
 
-    return FutureBuilder<List<double>>(
-      future: ExerciseService().getWeeklyCalories(),
+    return StreamBuilder<List<ExerciseModel>>(
+      stream: ExerciseService().getExercises(),
       builder: (context, snapshot) {
-        // Veri yüklenirken veya hata durumunda boş liste göster
-        final List<double> weeklyData = snapshot.data ?? List.filled(7, 0.0);
+        // 1. VERİYİ HAFTALIK KALORİ LİSTESİNE DÖNÜŞTÜR (Anlık)
+        List<double> weeklyData = List.filled(7, 0.0);
+        
+        if (snapshot.hasData) {
+          // Bu haftanın Pazartesi gününü bul
+          DateTime startOfWeek = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: now.weekday - 1));
+
+          for (var ex in snapshot.data!) {
+            // Sadece bu haftaya ait ve tamamlanmış olanları işle
+            if (ex.isCompleted && ex.date.isAfter(startOfWeek.subtract(const Duration(seconds: 1)))) {
+              int dayIdx = ex.date.weekday - 1;
+              if (dayIdx >= 0 && dayIdx < 7) {
+                weeklyData[dayIdx] += ex.estimatedCalories.toDouble();
+              }
+            }
+          }
+        }
+
         final bool hasData = weeklyData.any((value) => value > 0);
 
-        // Bir önceki güne göre farkı hesaplayan fonksiyon
         String getDifference() {
           if (todayIndex == 0 || weeklyData.isEmpty) return "0";
-          double diff = weeklyData[todayIndex] - weeklyData[todayIndex - 1];
+          double todayVal = weeklyData[todayIndex];
+          double yesterdayVal = weeklyData[todayIndex - 1];
+          if (todayVal == 0) return "0"; 
+          double diff = todayVal - yesterdayVal;
           return diff >= 0 ? "+${diff.toInt()}" : "${diff.toInt()}";
         }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Başlık ve Sağ Üstteki Fark Kutusu
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -44,7 +63,7 @@ class ExerciseChart extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -60,7 +79,6 @@ class ExerciseChart extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             
-            // Grafik Gövdesi
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -75,16 +93,15 @@ class ExerciseChart extends StatelessWidget {
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: List.generate(weeklyData.length, (index) {
-                      // Grafik yüksekliğini belirlemek için en yüksek değeri buluyoruz (scaling)
+                    children: List.generate(7, (index) {
+                      double val = weeklyData[index];
                       double maxVal = weeklyData.reduce((a, b) => a > b ? a : b);
-                      if (maxVal < 100) maxVal = 100; // Çok küçük değerlerde grafik sönük kalmasın
+                      if (maxVal < 100) maxVal = 100;
 
                       return Column(
                         children: [
-                          // Sütun Üzerindeki Değer
                           Text(
-                            "${weeklyData[index].toInt()}",
+                            "${val.toInt()}",
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -92,19 +109,16 @@ class ExerciseChart extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          // Grafik Sütunu
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 500),
                             width: 14,
-                            // Dinamik yükseklik: Mevcut kalori / Max Kalori * Grafik Alanı (100px)
-                            height: (weeklyData[index] / maxVal) * 100, 
+                            height: ((val / maxVal) * 100).clamp(4.0, 100.0), 
                             decoration: BoxDecoration(
                               color: index == todayIndex ? AppColors.secondary : AppColors.primary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           const SizedBox(height: 8),
-                          // Gün İsmi
                           Text(
                             days[index],
                             style: TextStyle(
