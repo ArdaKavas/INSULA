@@ -220,7 +220,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -283,7 +283,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                 nameValidator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'İlaç adı girin' : null,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
               Text(
                 'Kullanım Zamanları',
                 style: AppTextStyles.body.copyWith(
@@ -292,7 +292,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                   color: AppColors.accentTeal,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 4),
               ...List.generate(
                 _doseTimes.length,
                 (index) => Column(
@@ -352,16 +352,21 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                         );
                       },
                     ),
-                    if (index < _doseTimes.length - 1) const SizedBox(height: 12),
+                    if (index < _doseTimes.length - 1) const SizedBox(height: 6),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
               AddMedicationNotesCard(controller: _notesController),
-              const SizedBox(height: 32),
-              AddMedicationSaveButton(onPressed: _save),
+              const SizedBox(height: 16),
             ],
           ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: AddMedicationSaveButton(onPressed: _save),
         ),
       ),
     );

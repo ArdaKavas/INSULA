@@ -40,7 +40,7 @@ class AddMedicationFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(_cardRadius),
@@ -70,13 +70,13 @@ class AddMedicationFormCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               suffixIcon: Icon(Icons.search, color: AppColors.accentTeal, size: 22),
             ),
             style: AppTextStyles.body,
             validator: nameValidator,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           AddMedicationSelectField(
             label: 'İlaç Türü',
             value: medicationType == 'Tür Seçiniz' ? '' : medicationType,
@@ -84,7 +84,7 @@ class AddMedicationFormCard extends StatelessWidget {
             suffixIcon: AddMedicationSelectField.dropdownIcon(),
             onTap: onTypeTap,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -108,7 +108,7 @@ class AddMedicationFormCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -139,7 +139,7 @@ class AddMedicationFormCard extends StatelessWidget {
 
   Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         text,
         style: AppTextStyles.body.copyWith(
