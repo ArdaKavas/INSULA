@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "C:/INSULA/insula/linux"
+    "cmake.sourceDirectory": "C:/INSULA/insula/linux",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
