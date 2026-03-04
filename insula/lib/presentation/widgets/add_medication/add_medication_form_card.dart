@@ -9,9 +9,13 @@ class AddMedicationFormCard extends StatelessWidget {
   final String medicationType;
   final String dosage;
   final String frequency;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final VoidCallback onTypeTap;
   final VoidCallback onDosageTap;
   final VoidCallback onFrequencyTap;
+  final VoidCallback onStartDateTap;
+  final VoidCallback onEndDateTap;
   final String? Function(String?)? nameValidator;
 
   const AddMedicationFormCard({
@@ -20,9 +24,13 @@ class AddMedicationFormCard extends StatelessWidget {
     required this.medicationType,
     required this.dosage,
     required this.frequency,
+    this.startDate,
+    this.endDate,
     required this.onTypeTap,
     required this.onDosageTap,
     required this.onFrequencyTap,
+    required this.onStartDateTap,
+    required this.onEndDateTap,
     this.nameValidator,
   });
 
@@ -32,7 +40,7 @@ class AddMedicationFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(_cardRadius),
@@ -62,13 +70,13 @@ class AddMedicationFormCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: Colors.grey.shade300),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               suffixIcon: Icon(Icons.search, color: AppColors.accentTeal, size: 22),
             ),
             style: AppTextStyles.body,
             validator: nameValidator,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           AddMedicationSelectField(
             label: 'İlaç Türü',
             value: medicationType == 'Tür Seçiniz' ? '' : medicationType,
@@ -76,9 +84,19 @@ class AddMedicationFormCard extends StatelessWidget {
             suffixIcon: AddMedicationSelectField.dropdownIcon(),
             onTap: onTypeTap,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             children: [
+              Expanded(
+                child: AddMedicationSelectField(
+                  label: 'Sıklık',
+                  value: frequency,
+                  hint: 'Günde 2 kez',
+                  suffixIcon: AddMedicationSelectField.dropdownIcon(),
+                  onTap: onFrequencyTap,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: AddMedicationSelectField(
                   label: 'Dozaj',
@@ -88,14 +106,28 @@ class AddMedicationFormCard extends StatelessWidget {
                   onTap: onDosageTap,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: AddMedicationSelectField(
+                  label: 'Başlangıç',
+                  value: startDate != null ? '${startDate!.day.toString().padLeft(2, '0')}.${startDate!.month.toString().padLeft(2, '0')}.${startDate!.year}' : '',
+                  hint: 'Tarih Seç',
+                  suffixIcon: const Icon(Icons.calendar_today, size: 20, color: AppColors.accentTeal),
+                  onTap: onStartDateTap,
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: AddMedicationSelectField(
-                  label: 'Sıklık',
-                  value: frequency,
-                  hint: 'Günde 2 kez',
-                  suffixIcon: AddMedicationSelectField.dropdownIcon(),
-                  onTap: onFrequencyTap,
+                  label: 'Bitiş',
+                  value: endDate != null ? '${endDate!.day.toString().padLeft(2, '0')}.${endDate!.month.toString().padLeft(2, '0')}.${endDate!.year}' : 'Belirsiz',
+                  hint: 'Tarih Seç',
+                  suffixIcon: const Icon(Icons.calendar_today, size: 20, color: AppColors.accentTeal),
+                  onTap: onEndDateTap,
                 ),
               ),
             ],
@@ -107,7 +139,7 @@ class AddMedicationFormCard extends StatelessWidget {
 
   Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         text,
         style: AppTextStyles.body.copyWith(

@@ -9,6 +9,8 @@ import '../widgets/medication/medication_section.dart';
 import '../widgets/medication/medication_card_data.dart';
 import 'add_medication_screen.dart';
 import 'medication_detail_screen.dart';
+import '../../data/services/medication_service.dart';
+import 'dart:async';
 
 class MedicationScreen extends StatefulWidget {
   const MedicationScreen({super.key});
@@ -20,11 +22,30 @@ class MedicationScreen extends StatefulWidget {
 class _MedicationScreenState extends State<MedicationScreen> {
   DateTime? _selectedDate;
   List<Map<String, dynamic>> _savedMedications = [];
+  final MedicationService _medicationService = MedicationService();
+  StreamSubscription? _medicationSubscription;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
+    _listenToMedications();
+  }
+
+  void _listenToMedications() {
+    _medicationSubscription = _medicationService.getMedications().listen((medications) {
+      if (mounted) {
+        setState(() {
+          _savedMedications = medications;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _medicationSubscription?.cancel();
+    super.dispose();
   }
 
   void _navigateToMedicationDetail(MedicationCardData data) {
@@ -35,20 +56,21 @@ class _MedicationScreenState extends State<MedicationScreen> {
       MaterialPageRoute<dynamic>(
         builder: (context) => MedicationDetailScreen(medication: medication),
       ),
-    ).then((result) {
+    ).then((result) async {
       if (!mounted) return;
       
       if (result == true) {
         // İlaç silindi
-        setState(() {
-          _savedMedications.removeAt(medicationIndex);
-        });
+        final String? docId = medication['id'] as String?;
+        if (docId != null) {
+          await _medicationService.deleteMedication(docId);
+        }
       } else if (result is Map<String, dynamic>) {
         // İlaç güncellendi
-        setState(() {
-          // takenFlags zaten AddMedicationScreen'de ayarlanmış olmalı
-          _savedMedications[medicationIndex] = result;
-        });
+        final String? docId = medication['id'] as String?;
+        if (docId != null) {
+          await _medicationService.updateMedication(docId, result);
+        }
       }
     });
   }
@@ -59,6 +81,25 @@ class _MedicationScreenState extends State<MedicationScreen> {
     
     for (int medIndex = 0; medIndex < _savedMedications.length; medIndex++) {
       final med = _savedMedications[medIndex];
+      
+      // Tarih filtrelemesi
+      final DateTime? startDate = med['startDate'] != null ? med['startDate'] as DateTime : null;
+      final DateTime? endDate = med['endDate'] != null ? med['endDate'] as DateTime : null;
+      final selectedDate = _selectedDate ?? DateTime.now();
+
+      // Sadece günü karşılaştır
+      final selectedDateOnly = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+      
+      if (startDate != null) {
+        final startDateOnly = DateTime(startDate.year, startDate.month, startDate.day);
+        if (selectedDateOnly.isBefore(startDateOnly)) continue;
+      }
+      
+      if (endDate != null) {
+        final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
+        if (selectedDateOnly.isAfter(endDateOnly)) continue;
+      }
+
       final doseUsageTimes = med['doseUsageTimes'] as List<String>;
       final doseTimes = med['doseTimes'] as List<TimeOfDay>;
       final doseAmounts = med['doseAmounts'] as List<String>;
@@ -110,18 +151,6 @@ class _MedicationScreenState extends State<MedicationScreen> {
           ],
         ),
         centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: null, // UI-only
-            child: Text(
-              'Düzenle',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.accentTeal,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -142,11 +171,13 @@ class _MedicationScreenState extends State<MedicationScreen> {
             MedicationSection(
               title: 'Sabah',
               medications: _getMedicationsForSection('Sabah'),
-              onToggle: (data) {
-                setState(() {
-                  final current = _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] as bool;
-                  _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] = !current;
-                });
+              onToggle: (data) async {
+                final med = _savedMedications[data.parentIndex];
+                final docId = med['id'] as String;
+                final currentFlags = List<bool>.from(med['takenFlags'] as List);
+                currentFlags[data.doseIndex] = !currentFlags[data.doseIndex];
+                
+                await _medicationService.updateMedication(docId, {'takenFlags': currentFlags});
               },
               onMedicationTap: _navigateToMedicationDetail,
             ),
@@ -156,11 +187,13 @@ class _MedicationScreenState extends State<MedicationScreen> {
             MedicationSection(
               title: 'Öğle',
               medications: _getMedicationsForSection('Öğle'),
-              onToggle: (data) {
-                setState(() {
-                  final current = _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] as bool;
-                  _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] = !current;
-                });
+              onToggle: (data) async {
+                final med = _savedMedications[data.parentIndex];
+                final docId = med['id'] as String;
+                final currentFlags = List<bool>.from(med['takenFlags'] as List);
+                currentFlags[data.doseIndex] = !currentFlags[data.doseIndex];
+                
+                await _medicationService.updateMedication(docId, {'takenFlags': currentFlags});
               },
               onMedicationTap: _navigateToMedicationDetail,
             ),
@@ -170,11 +203,13 @@ class _MedicationScreenState extends State<MedicationScreen> {
             MedicationSection(
               title: 'Akşam',
               medications: _getMedicationsForSection('Akşam'),
-              onToggle: (data) {
-                setState(() {
-                  final current = _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] as bool;
-                  _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] = !current;
-                });
+              onToggle: (data) async {
+                final med = _savedMedications[data.parentIndex];
+                final docId = med['id'] as String;
+                final currentFlags = List<bool>.from(med['takenFlags'] as List);
+                currentFlags[data.doseIndex] = !currentFlags[data.doseIndex];
+                
+                await _medicationService.updateMedication(docId, {'takenFlags': currentFlags});
               },
               onMedicationTap: _navigateToMedicationDetail,
             ),
@@ -184,11 +219,13 @@ class _MedicationScreenState extends State<MedicationScreen> {
             MedicationSection(
               title: 'Diğer',
               medications: _getMedicationsForSection('Diğer'),
-              onToggle: (data) {
-                setState(() {
-                  final current = _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] as bool;
-                  _savedMedications[data.parentIndex]['takenFlags'][data.doseIndex] = !current;
-                });
+              onToggle: (data) async {
+                final med = _savedMedications[data.parentIndex];
+                final docId = med['id'] as String;
+                final currentFlags = List<bool>.from(med['takenFlags'] as List);
+                currentFlags[data.doseIndex] = !currentFlags[data.doseIndex];
+                
+                await _medicationService.updateMedication(docId, {'takenFlags': currentFlags});
               },
               onMedicationTap: _navigateToMedicationDetail,
             ),
@@ -204,12 +241,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
             ),
           );
           if (result != null) {
-            setState(() {
-              // initialize taken flags per dose for tracking
-              final int totalDoses = (result['doseAmounts'] as List?)?.length ?? (result['doseUsageTimes'] as List?)?.length ?? 0;
-              result['takenFlags'] = List<bool>.filled(totalDoses, false);
-              _savedMedications.add(result);
-            });
+            await _medicationService.saveMedication(result);
           }
         },
         backgroundColor: const Color(0xFFFFC107),
