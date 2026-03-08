@@ -32,11 +32,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String? _gender;
   DateTime? _dob;
+  final _ageCtrl = TextEditingController();
 
   final _heightCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _chronicCtrl = TextEditingController();
   final _allergyCtrl = TextEditingController();
+  
+  // New Onboarding Fields
+  String? _diabetesType;
+  final _diagnosisYearCtrl = TextEditingController();
+  bool _usesInsulin = false;
+  String? _insulinType;
+  String? _insulinDeliveryMethod;
+  bool _usesCgm = false;
+  String? _glucoseMeasurementFrequency;
+  final _targetMinCtrl = TextEditingController();
+  final _targetMaxCtrl = TextEditingController();
+  final _weeklyExerciseCtrl = TextEditingController();
+  final _sleepHoursCtrl = TextEditingController();
+  List<String> _improvementGoals = [];
+  bool _hasSevereHypoHistory = false;
+  bool _reminderMedication = false;
+  bool _reminderMeasurement = false;
+  bool _reminderWater = false;
 
   List<EmergencyContact> _emergencyContacts = [];
 
@@ -67,10 +86,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
+    _ageCtrl.dispose();
     _heightCtrl.dispose();
     _weightCtrl.dispose();
     _chronicCtrl.dispose();
     _allergyCtrl.dispose();
+    _diagnosisYearCtrl.dispose();
+    _targetMinCtrl.dispose();
+    _targetMaxCtrl.dispose();
+    _weeklyExerciseCtrl.dispose();
+    _sleepHoursCtrl.dispose();
     for (var contact in _emergencyContacts) {
       contact.nameController.dispose();
       contact.phoneController.dispose();
@@ -123,6 +148,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _nameCtrl.text = (data['fullName'] ?? '').toString();
       _emailCtrl.text = (data['email'] ?? _emailCtrl.text).toString();
       _gender = (data['gender'] as String?) ?? _gender;
+      
+      if (data['age'] != null) {
+        _ageCtrl.text = data['age'].toString();
+      }
 
       final bd = data['birthDate'];
       if (bd is Timestamp) _dob = bd.toDate();
@@ -134,6 +163,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       _chronicCtrl.text = (data['chronicDiseases'] ?? '').toString();
       _allergyCtrl.text = (data['allergies'] ?? '').toString();
+
+      // Load Onboarding Fields
+      _diabetesType = data['diabetesType'] as String?;
+      if (data['diagnosisYear'] != null) {
+        _diagnosisYearCtrl.text = data['diagnosisYear'].toString();
+      }
+      _usesInsulin = data['usesInsulin'] as bool? ?? false;
+      _insulinType = data['insulinType'] as String?;
+      _insulinDeliveryMethod = data['insulinDeliveryMethod'] as String?;
+      _usesCgm = data['usesCgm'] as bool? ?? false;
+      _glucoseMeasurementFrequency = data['glucoseMeasurementFrequency'] as String?;
+      
+      if (data['targetGlucoseMin'] != null) {
+        _targetMinCtrl.text = data['targetGlucoseMin'].toString();
+      }
+      if (data['targetGlucoseMax'] != null) {
+        _targetMaxCtrl.text = data['targetGlucoseMax'].toString();
+      }
+      if (data['weeklyExerciseDays'] != null) {
+        _weeklyExerciseCtrl.text = data['weeklyExerciseDays'].toString();
+      }
+      if (data['sleepHoursPerNight'] != null) {
+        _sleepHoursCtrl.text = data['sleepHoursPerNight'].toString();
+      }
+      
+      if (data['improvementGoals'] is List) {
+        _improvementGoals = List<String>.from(data['improvementGoals']);
+      }
+      
+      _hasSevereHypoHistory = data['hasSevereHypoglycemiaHistory'] as bool? ?? false;
+      _reminderMedication = data['reminderMedication'] as bool? ?? false;
+      _reminderMeasurement = data['reminderMeasurement'] as bool? ?? false;
+      _reminderWater = data['reminderWater'] as bool? ?? false;
 
       final ec = data['emergencyContacts'];
       if (ec is List) {
@@ -224,12 +286,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'fullName': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
         'gender': _gender,
+        'age': int.tryParse(_ageCtrl.text.trim()),
         'birthDate': _dob == null ? null : Timestamp.fromDate(_dob!),
         'height': height,
         'weight': weight,
         'chronicDiseases': _chronicCtrl.text.trim(),
         'allergies': _allergyCtrl.text.trim(),
         'emergencyContacts': ecList,
+
+        // Save Onboarding Fields
+        'diabetesType': _diabetesType,
+        'diagnosisYear': int.tryParse(_diagnosisYearCtrl.text.trim()),
+        'usesInsulin': _usesInsulin,
+        'insulinType': _insulinType,
+        'insulinDeliveryMethod': _insulinDeliveryMethod,
+        'usesCgm': _usesCgm,
+        'glucoseMeasurementFrequency': _glucoseMeasurementFrequency,
+        'targetGlucoseMin': int.tryParse(_targetMinCtrl.text.trim()),
+        'targetGlucoseMax': int.tryParse(_targetMaxCtrl.text.trim()),
+        'weeklyExerciseDays': int.tryParse(_weeklyExerciseCtrl.text.trim()),
+        'sleepHoursPerNight': double.tryParse(_sleepHoursCtrl.text.trim().replaceAll(',', '.')),
+        'improvementGoals': _improvementGoals,
+        'hasSevereHypoglycemiaHistory': _hasSevereHypoHistory,
+        'reminderMedication': _reminderMedication,
+        'reminderMeasurement': _reminderMeasurement,
+        'reminderWater': _reminderWater,
+
         'profileComplete': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -269,18 +351,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: AppTextStyles.h1.copyWith(color: AppColors.secondary),
         ),
         centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _save,
-            child: Text(
-              'KAYDET',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.accentTeal,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          )
-        ],
       ),
       body: Stack(
         children: [
@@ -299,10 +369,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.tertiary.withValues(alpha: 0.08),
+                        color: AppColors.tertiary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.tertiary.withValues(alpha: 0.35),
+                          color: AppColors.tertiary.withOpacity(0.35),
                         ),
                       ),
                       child: Text(
@@ -329,11 +399,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: _gapSm),
                         Row(
                           children: [
-                            Expanded(child: _genderField()),
+                            Expanded(child: _field('Yaş', _ageCtrl, keyboard: TextInputType.number)),
                             const SizedBox(width: 12),
-                            Expanded(child: _dobField()),
+                            Expanded(child: _genderField()),
                           ],
                         ),
+                        const SizedBox(height: _gapSm),
+                        _dobField(),
                       ],
                     ),
                   ),
@@ -379,6 +451,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             hintText: 'Örn: Tip 2 Diyabet'),
                         const SizedBox(height: _gapSm),
                         _field('Alerjiler', _allergyCtrl, hintText: 'Örn: Penisilin'),
+                      ],
+                    ),
+                  ),
+
+                  _section('Diyabet Profili'),
+                  _accentCard(
+                    accent: AppColors.accentTeal,
+                    child: Column(
+                      children: [
+                        _diabetesTypeField(),
+                        const SizedBox(height: _gapSm),
+                        _field(
+                          'Tanı Yılı',
+                          _diagnosisYearCtrl,
+                          hintText: 'Örn: 2018',
+                          keyboard: TextInputType.number,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  _section('Tedavi ve İzleme'),
+                  _accentCard(
+                    accent: AppColors.primary,
+                    child: Column(
+                      children: [
+                        _switchField('İnsülin Kullanıyor musunuz?', _usesInsulin, (v) => setState(() => _usesInsulin = v)),
+                        if (_usesInsulin) ...[
+                          const SizedBox(height: _gapSm),
+                          _insulinTypeField(),
+                          const SizedBox(height: _gapSm),
+                          _insulinMethodField(),
+                        ],
+                        const SizedBox(height: _gapSm),
+                        _switchField('CGM Kullanıyor musunuz?', _usesCgm, (v) => setState(() => _usesCgm = v)),
+                        const SizedBox(height: _gapSm),
+                        _frequencyField(),
+                      ],
+                    ),
+                  ),
+
+                  _section('Hedefler ve Yaşam Tarzı'),
+                  _accentCard(
+                    accent: AppColors.accentTeal,
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: _field('Hedef Min (mg/dL)', _targetMinCtrl, keyboard: TextInputType.number)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _field('Hedef Max (mg/dL)', _targetMaxCtrl, keyboard: TextInputType.number)),
+                          ],
+                        ),
+                        const SizedBox(height: _gapSm),
+                        Row(
+                          children: [
+                            Expanded(child: _field('Haftalık Egzersiz Günü', _weeklyExerciseCtrl, keyboard: TextInputType.number)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _field('Gecelik Uyku (Saat)', _sleepHoursCtrl, keyboard: TextInputType.number)),
+                          ],
+                        ),
+                        const SizedBox(height: _gapSm),
+                        _goalsField(),
+                      ],
+                    ),
+                  ),
+
+                  _section('Güvenlik ve Bildirimler'),
+                  _accentCard(
+                    accent: AppColors.tertiary,
+                    child: Column(
+                      children: [
+                        _switchField('Şiddetli Hipoglisemi Geçmişi', _hasSevereHypoHistory, (v) => setState(() => _hasSevereHypoHistory = v)),
+                        const Divider(height: 16),
+                        _switchField('İlaç Hatırlatıcısı', _reminderMedication, (v) => setState(() => _reminderMedication = v)),
+                        _switchField('Ölçüm Hatırlatıcısı', _reminderMeasurement, (v) => setState(() => _reminderMeasurement = v)),
+                        _switchField('Su Hatırlatıcısı', _reminderWater, (v) => setState(() => _reminderWater = v)),
                       ],
                     ),
                   ),
@@ -454,10 +603,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           if (_isLoading)
             Container(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               child: const Center(child: CircularProgressIndicator()),
             ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _save,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.secondary,
+                      ),
+                    )
+                  : const Icon(Icons.save, color: AppColors.secondary, size: 22),
+              label: Text(
+                'Kaydet',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.secondary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -614,6 +800,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           items: const [
             DropdownMenuItem(value: 'Erkek', child: Text('Erkek')),
             DropdownMenuItem(value: 'Kadın', child: Text('Kadın')),
+            DropdownMenuItem(value: 'Diğer', child: Text('Diğer')),
             DropdownMenuItem(value: 'Belirtmek İstemiyorum', child: Text('Belirtmek İstemiyorum')),
           ],
           onChanged: (v) => setState(() => _gender = v),
@@ -675,13 +862,167 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border(left: BorderSide(color: accent, width: 5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: child,
+    );
+  }
+
+  Widget _diabetesTypeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel('Diyabet Tipi'),
+        DropdownButtonFormField<String>(
+          value: _diabetesType,
+          isExpanded: true,
+          decoration: _dropdownDecoration('Diyabet Tipi Seçiniz'),
+          items: const [
+            DropdownMenuItem(value: 'Tip 1', child: Text('Tip 1')),
+            DropdownMenuItem(value: 'Tip 2', child: Text('Tip 2')),
+            DropdownMenuItem(value: 'Gestasyonel', child: Text('Gestasyonel')),
+            DropdownMenuItem(value: 'Prediyabet', child: Text('Prediyabet')),
+          ],
+          onChanged: (v) => setState(() => _diabetesType = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _insulinTypeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel('İnsülin Tipi'),
+        DropdownButtonFormField<String>(
+          value: _insulinType,
+          isExpanded: true,
+          decoration: _dropdownDecoration('İnsülin Tipi Seçiniz'),
+          items: const [
+            DropdownMenuItem(value: 'Hızlı etkili', child: Text('Hızlı etkili')),
+            DropdownMenuItem(value: 'Uzun etkili', child: Text('Uzun etkili')),
+            DropdownMenuItem(value: 'Karma', child: Text('Karma')),
+          ],
+          onChanged: (v) => setState(() => _insulinType = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _insulinMethodField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel('İnsülin Uygulama Yöntemi'),
+        DropdownButtonFormField<String>(
+          value: _insulinDeliveryMethod,
+          isExpanded: true,
+          decoration: _dropdownDecoration('Yöntem Seçiniz'),
+          items: const [
+            DropdownMenuItem(value: 'Kalem', child: Text('Kalem')),
+            DropdownMenuItem(value: 'Pompa', child: Text('Pompa')),
+          ],
+          onChanged: (v) => setState(() => _insulinDeliveryMethod = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _frequencyField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel('Glikoz Ölçüm Sıklığı'),
+        DropdownButtonFormField<String>(
+          value: _glucoseMeasurementFrequency,
+          isExpanded: true,
+          decoration: _dropdownDecoration('Sıklık Seçiniz'),
+          items: const [
+            DropdownMenuItem(value: 'Günde 1–2 kez', child: Text('Günde 1–2 kez')),
+            DropdownMenuItem(value: 'Günde 3–4 kez', child: Text('Günde 3–4 kez')),
+            DropdownMenuItem(value: 'Günde 5+ kez', child: Text('Günde 5+ kez')),
+            DropdownMenuItem(value: 'Nadiren', child: Text('Nadiren')),
+          ],
+          onChanged: (v) => setState(() => _glucoseMeasurementFrequency = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _goalsField() {
+    final availableGoals = ['Kilo Vermek', 'Daha Aktif Olmak', 'Şeker Dengesini Sağlamak', 'Daha İyi Beslenmek'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel('Geliştirme Hedefleri'),
+        Wrap(
+          spacing: 8,
+          children: availableGoals.map((goal) {
+            final isSelected = _improvementGoals.contains(goal);
+            return FilterChip(
+              label: Text(goal, style: AppTextStyles.body.copyWith(fontSize: 12, color: isSelected ? Colors.white : AppColors.secondary)),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _improvementGoals.add(goal);
+                  } else {
+                    _improvementGoals.remove(goal);
+                  }
+                });
+              },
+              selectedColor: AppColors.accentTeal,
+              checkmarkColor: Colors.white,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _switchField(String label, bool value, ValueChanged<bool> onChanged) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.body.copyWith(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: AppColors.accentTeal,
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _dropdownDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
+      filled: true,
+      fillColor: AppColors.backgroundLight,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: AppColors.accentTeal, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      suffixIcon: Icon(Icons.arrow_drop_down, color: AppColors.accentTeal, size: 22),
     );
   }
 }
