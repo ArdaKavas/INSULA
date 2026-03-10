@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import 'profile_base_components.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
+import '../profile_base_components.dart';
 
 class ProfileAccountActionsCard extends StatelessWidget {
   final VoidCallback onLogout;

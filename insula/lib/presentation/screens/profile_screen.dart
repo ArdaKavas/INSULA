@@ -12,7 +12,7 @@ import '../widgets/profile/profile_health_info_card.dart';
 import '../widgets/profile/profile_diabetes_profile_card.dart';
 import '../widgets/profile/profile_treatment_tracking_card.dart';
 import '../widgets/profile/profile_goals_lifestyle_card.dart';
-import '../widgets/profile/profile_security_notifications_card.dart';
+
 import '../widgets/profile/profile_emergency_contact_card.dart';
 import '../widgets/profile/profile_save_button.dart';
 import 'profile_settings_screen.dart';

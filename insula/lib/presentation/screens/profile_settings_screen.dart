@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../widgets/profile/profile_security_notifications_card.dart';
-import '../widgets/profile/profile_app_preferences_card.dart';
-import '../widgets/profile/profile_account_actions_card.dart';
+import '../widgets/profile/settings/profile_security_notifications_card.dart';
+import '../widgets/profile/settings/profile_app_preferences_card.dart';
+import '../widgets/profile/settings/profile_account_actions_card.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   final bool initialHasSevereHypoHistory;
@@ -31,7 +31,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   late bool _reminderMeasurement;
   late bool _reminderWater;
   
-  String _selectedTheme = 'Açık';
   String _selectedLanguage = 'Türkçe';
   
   bool _isLoading = false;
@@ -57,7 +56,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         if (doc.exists) {
           final data = doc.data()!;
           setState(() {
-            _selectedTheme = data['theme'] ?? 'Açık';
             _selectedLanguage = data['language'] ?? 'Türkçe';
           });
         }
@@ -77,7 +75,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           'reminderMedication': _reminderMedication,
           'reminderMeasurement': _reminderMeasurement,
           'reminderWater': _reminderWater,
-          'theme': _selectedTheme,
           'language': _selectedLanguage,
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -225,9 +222,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             ),
             const SizedBox(height: 8),
             ProfileAppPreferencesCard(
-              theme: _selectedTheme,
               language: _selectedLanguage,
-              onThemeChanged: (v) => setState(() => _selectedTheme = v ?? 'Açık'),
               onLanguageChanged: (v) => setState(() => _selectedLanguage = v ?? 'Türkçe'),
             ),
             const SizedBox(height: 8),

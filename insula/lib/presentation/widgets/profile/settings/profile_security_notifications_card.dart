@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import 'profile_base_components.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../profile_base_components.dart';
 
 class ProfileSecurityNotificationsCard extends StatelessWidget {
   final bool hasSevereHypoHistory;
