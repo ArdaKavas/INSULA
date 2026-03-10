@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:insula/core/theme/app_colors.dart';
@@ -155,8 +157,7 @@ class _InsulinEntryBottomSheetState extends State<_InsulinEntryBottomSheet> {
                     return ChoiceChip(
                       label: Text(type),
                       selected: isSelected,
-                      onSelected: (_) =>
-                          setState(() => _selectedType = type),
+                      onSelected: (_) => setState(() => _selectedType = type),
                       selectedColor: AppColors.secondary.withOpacity(0.2),
                       labelStyle: TextStyle(
                         color: isSelected

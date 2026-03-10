@@ -241,6 +241,7 @@ class Type1GlucoseSummaryCard extends StatelessWidget {
                         ),
                       )
                           .then((_) {
+                        // ignore: use_build_context_synchronously
                         context.read<HomeViewModel>().refresh();
                       });
                     },

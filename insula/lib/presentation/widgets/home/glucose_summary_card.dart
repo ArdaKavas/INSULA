@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, duplicate_ignore
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, duplicate_ignore
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -73,206 +73,208 @@ class GlucoseSummaryCard extends StatelessWidget {
             ((value - displayMin) / (displayMax - displayMin)).clamp(0.0, 1.0);
 
         return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(24),
-        border: const Border(
-          left: BorderSide(color: AppColors.primary, width: 4),
-        ),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(24),
+            border: const Border(
+              left: BorderSide(color: AppColors.primary, width: 4),
+            ),
+            boxShadow: [
+              BoxShadow(
+                // ignore: deprecated_member_use
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Background Decor (Blur) - Simplified as Flutter shadow/blur handling can be complex
-          // Leaving out the absolute positioned blur for performance/simplicity for now, can add if needed as a blurred container.
-
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "ŞEKER SEVİYESİ",
-                        style: AppTextStyles.label.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.secondary,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      Text(
-                        glucose != null
-                            ? "Son ölçüm: ${_formatTimeAgo(glucose.timestamp)}"
-                            : "Ölçüm eklenmedi",
-                        style: AppTextStyles.label.copyWith(fontSize: 10),
-                      ),
-                    ],
-                  ),
-                  if (status != null) _buildStatusBadge(status),
-                ],
-              ),
-              const SizedBox(height: 16),
+              // Background Decor (Blur) - Simplified as Flutter shadow/blur handling can be complex
+              // Leaving out the absolute positioned blur for performance/simplicity for now, can add if needed as a blurred container.
 
-              // Value
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    glucose?.value.toString() ?? "—",
-                    style: AppTextStyles.glucoseValue,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "mg/dL",
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.textSecLight,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              // Gradient Range Bar
               Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("Düşük",
-                          style: AppTextStyles.label.copyWith(
-                              fontSize: 10, fontWeight: FontWeight.bold)),
-                      Text(
-                          "Hedef: ${vm.targetGlucoseMin}-${vm.targetGlucoseMax}",
-                          style: AppTextStyles.label.copyWith(
-                              fontSize: 10,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "ŞEKER SEVİYESİ",
+                            style: AppTextStyles.label.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.secondary)),
-                      Text("Yüksek",
-                          style: AppTextStyles.label.copyWith(
-                              fontSize: 10, fontWeight: FontWeight.bold)),
+                              color: AppColors.secondary,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          Text(
+                            glucose != null
+                                ? "Son ölçüm: ${_formatTimeAgo(glucose.timestamp)}"
+                                : "Ölçüm eklenmedi",
+                            style: AppTextStyles.label.copyWith(fontSize: 10),
+                          ),
+                        ],
+                      ),
+                      if (status != null) _buildStatusBadge(status),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 12,
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            gradient: const LinearGradient(
-                              colors: [
-                                AppColors.tertiary, // Orange
-                                AppColors.primary, // Yellow
-                                AppColors.secondary, // Teal (Target)
-                                AppColors.primary,
-                                AppColors.tertiary,
-                              ],
-                              stops: [0.0, 0.3, 0.5, 0.7, 1.0],
-                            ),
-                            color: Colors.grey.shade200, // Fallback
-                          ),
-                          child: Opacity(
-                            opacity: 0.8,
-                            child: Container(),
-                          ),
+                  const SizedBox(height: 16),
+
+                  // Value
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        glucose?.value.toString() ?? "—",
+                        style: AppTextStyles.glucoseValue,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "mg/dL",
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textSecLight,
+                          fontWeight: FontWeight.w500,
                         ),
-                        // Indicator
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final left = ((constraints.maxWidth - 6) * position)
-                                .clamp(0.0, constraints.maxWidth - 6);
-                            return Positioned(
-                              left: left,
-                              top: 0,
-                              bottom: 0,
-                              child: Transform.translate(
-                                offset: const Offset(
-                                    -3, 0), // Center the marker width (6px)
-                                child: Container(
-                                  width: 6,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(3),
-                                    border:
-                                        Border.all(color: Colors.grey.shade300),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      )
-                                    ],
-                                  ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Gradient Range Bar
+                  Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Düşük",
+                              style: AppTextStyles.label.copyWith(
+                                  fontSize: 10, fontWeight: FontWeight.bold)),
+                          Text(
+                              "Hedef: ${vm.targetGlucoseMin}-${vm.targetGlucoseMax}",
+                              style: AppTextStyles.label.copyWith(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.secondary)),
+                          Text("Yüksek",
+                              style: AppTextStyles.label.copyWith(
+                                  fontSize: 10, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 12,
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    AppColors.tertiary, // Orange
+                                    AppColors.primary, // Yellow
+                                    AppColors.secondary, // Teal (Target)
+                                    AppColors.primary,
+                                    AppColors.tertiary,
+                                  ],
+                                  stops: [0.0, 0.3, 0.5, 0.7, 1.0],
                                 ),
+                                color: Colors.grey.shade200, // Fallback
                               ),
-                            );
-                          },
+                              child: Opacity(
+                                opacity: 0.8,
+                                child: Container(),
+                              ),
+                            ),
+                            // Indicator
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final left =
+                                    ((constraints.maxWidth - 6) * position)
+                                        .clamp(0.0, constraints.maxWidth - 6);
+                                return Positioned(
+                                  left: left,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Transform.translate(
+                                    offset: const Offset(
+                                        -3, 0), // Center the marker width (6px)
+                                    child: Container(
+                                      width: 6,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(3),
+                                        border: Border.all(
+                                            color: Colors.grey.shade300),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.2),
+                                            blurRadius: 2,
+                                            offset: const Offset(0, 1),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      showGlucoseEntryBottomSheet(
-                        context,
-                        onSaved: () =>
-                            context.read<HomeViewModel>().refresh(),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add_circle_outline,
-                          size: 18,
-                          color: AppColors.secondary,
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          showGlucoseEntryBottomSheet(
+                            context,
+                            onSaved: () =>
+                                context.read<HomeViewModel>().refresh(),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          "Ölçüm Ekle",
-                          style: AppTextStyles.label.copyWith(
-                            color: AppColors.secondary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.add_circle_outline,
+                              size: 18,
+                              color: AppColors.secondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "Ölçüm Ekle",
+                              style: AppTextStyles.label.copyWith(
+                                color: AppColors.secondary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context)
-                          .push(
+                      ),
+                      const SizedBox(width: 16),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context)
+                              .push(
                             MaterialPageRoute(
                               builder: (_) => GlucoseDetailScreen(
                                 targetMin: vm.targetGlucoseMin,
@@ -280,32 +282,31 @@ class GlucoseSummaryCard extends StatelessWidget {
                               ),
                             ),
                           )
-                          .then((_) {
-                        context.read<HomeViewModel>().refresh();
-                      });
-                    },
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      "Detaylar",
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.tertiary,
-                        fontWeight: FontWeight.bold,
+                              .then((_) {
+                            context.read<HomeViewModel>().refresh();
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          "Detaylar",
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.tertiary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
             ],
           ),
-        ],
-      ),
-    );
+        );
       },
     );
   }
 }
-

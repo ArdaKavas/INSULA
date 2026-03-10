@@ -94,7 +94,7 @@ class InsulinCard extends StatelessWidget {
                         ),
                         child: Text(
                           hasActiveInsulin
-                              ? "Son: ${_formatTime(log!.timestamp)}"
+                              ? "Son: ${_formatTime(log.timestamp)}"
                               : "Kayıt yok",
                           style: AppTextStyles.label.copyWith(
                             color: AppColors.secondary,
