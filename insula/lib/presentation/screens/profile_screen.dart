@@ -5,6 +5,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../widgets/profile/profile_header.dart';
+import '../widgets/profile/profile_personal_info_card.dart';
+import '../widgets/profile/profile_physical_measurements_card.dart';
+import '../widgets/profile/profile_health_info_card.dart';
+import '../widgets/profile/profile_diabetes_profile_card.dart';
+import '../widgets/profile/profile_treatment_tracking_card.dart';
+import '../widgets/profile/profile_goals_lifestyle_card.dart';
+import '../widgets/profile/profile_security_notifications_card.dart';
+import '../widgets/profile/profile_emergency_contact_card.dart';
+import '../widgets/profile/profile_save_button.dart';
+import 'profile_settings_screen.dart';
 
 // Acil durum kişisi için model sınıfı
 class EmergencyContact {
@@ -60,15 +71,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<EmergencyContact> _emergencyContacts = [];
 
   static const double _cardRadius = 16;
-
-  // ✅ Breathable spacing restored
-  static const double _gapXs = 4;
-  static const double _gapSm = 8;
-  static const double _gapMd = 10;
-  static const double _sectionTop = 10;
-  static const double _sectionBottom = 4;
-  static const double _cardPadding = 11;
-  static const double _cardMarginBottom = 8;
 
   bool _isLoading = true;
   String? _errorText;
@@ -351,6 +353,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: AppTextStyles.h1.copyWith(color: AppColors.secondary),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: AppColors.secondary),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfileSettingsScreen(
+                    initialHasSevereHypoHistory: _hasSevereHypoHistory,
+                    initialReminderMedication: _reminderMedication,
+                    initialReminderMeasurement: _reminderMeasurement,
+                    initialReminderWater: _reminderWater,
+                  ),
+                ),
+              );
+
+              if (result != null && result is Map<String, bool>) {
+                setState(() {
+                  _hasSevereHypoHistory = result['hasSevereHypoHistory'] ?? _hasSevereHypoHistory;
+                  _reminderMedication = result['reminderMedication'] ?? _reminderMedication;
+                  _reminderMeasurement = result['reminderMeasurement'] ?? _reminderMeasurement;
+                  _reminderWater = result['reminderWater'] ?? _reminderWater;
+                });
+              }
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -361,7 +390,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _profileHeader(headerName, headerMail),
+                  ProfileHeader(
+                    name: _nameCtrl.text.trim(),
+                    email: _emailCtrl.text.trim(),
+                  ),
 
                   if (_errorText != null) ...[
                     Container(
@@ -382,220 +414,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
 
-                  _section('Kişisel Bilgiler'),
-                  _accentCard(
-                    accent: AppColors.accentTeal,
-                    child: Column(
-                      children: [
-                        _field('Ad Soyad', _nameCtrl, suffixIcon: Icons.person),
-                        const SizedBox(height: _gapSm),
-                        _field(
-                          'E-posta',
-                          _emailCtrl,
-                          keyboard: TextInputType.emailAddress,
-                          suffixIcon: Icons.email,
-                          readOnly: true,
-                        ),
-                        const SizedBox(height: _gapSm),
-                        Row(
-                          children: [
-                            Expanded(child: _field('Yaş', _ageCtrl, keyboard: TextInputType.number)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _genderField()),
-                          ],
-                        ),
-                        const SizedBox(height: _gapSm),
-                        _dobField(),
-                      ],
-                    ),
+                  ProfilePersonalInfoCard(
+                    nameController: _nameCtrl,
+                    emailController: _emailCtrl,
+                    ageController: _ageCtrl,
+                    gender: _gender,
+                    dob: _dob,
+                    onPickDob: _pickDob,
+                    onGenderChanged: (v) => setState(() => _gender = v),
                   ),
 
-                  _section('Fiziksel Ölçümler'),
-                  _accentCard(
-                    accent: AppColors.primary,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _field(
-                            'Boy (cm)',
-                            _heightCtrl,
-                            hintText: 'Örn: 182',
-                            keyboard: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _field(
-                            'Kilo (kg)',
-                            _weightCtrl,
-                            hintText: 'Örn: 78',
-                            keyboard: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                  ProfilePhysicalMeasurementsCard(
+                    heightController: _heightCtrl,
+                    weightController: _weightCtrl,
                   ),
 
-                  _section('Sağlık Bilgileri'),
-                  _accentCard(
-                    accent: AppColors.primary,
-                    child: Column(
-                      children: [
-                        _field('Kronik Hastalıklar', _chronicCtrl,
-                            hintText: 'Örn: Tip 2 Diyabet'),
-                        const SizedBox(height: _gapSm),
-                        _field('Alerjiler', _allergyCtrl, hintText: 'Örn: Penisilin'),
-                      ],
-                    ),
+                  ProfileHealthInfoCard(
+                    chronicCtrl: _chronicCtrl,
+                    allergyCtrl: _allergyCtrl,
                   ),
 
-                  _section('Diyabet Profili'),
-                  _accentCard(
-                    accent: AppColors.accentTeal,
-                    child: Column(
-                      children: [
-                        _diabetesTypeField(),
-                        const SizedBox(height: _gapSm),
-                        _field(
-                          'Tanı Yılı',
-                          _diagnosisYearCtrl,
-                          hintText: 'Örn: 2018',
-                          keyboard: TextInputType.number,
-                        ),
-                      ],
-                    ),
+                  ProfileDiabetesProfileCard(
+                    diabetesType: _diabetesType,
+                    diagnosisYearCtrl: _diagnosisYearCtrl,
+                    onDiabetesTypeChanged: (v) => setState(() => _diabetesType = v),
                   ),
 
-                  _section('Tedavi ve İzleme'),
-                  _accentCard(
-                    accent: AppColors.primary,
-                    child: Column(
-                      children: [
-                        _switchField('İnsülin Kullanıyor musunuz?', _usesInsulin, (v) => setState(() => _usesInsulin = v)),
-                        if (_usesInsulin) ...[
-                          const SizedBox(height: _gapSm),
-                          _insulinTypeField(),
-                          const SizedBox(height: _gapSm),
-                          _insulinMethodField(),
-                        ],
-                        const SizedBox(height: _gapSm),
-                        _switchField('CGM Kullanıyor musunuz?', _usesCgm, (v) => setState(() => _usesCgm = v)),
-                        const SizedBox(height: _gapSm),
-                        _frequencyField(),
-                      ],
-                    ),
+                  ProfileTreatmentTrackingCard(
+                    usesInsulin: _usesInsulin,
+                    insulinType: _insulinType,
+                    insulinDeliveryMethod: _insulinDeliveryMethod,
+                    usesCgm: _usesCgm,
+                    glucoseMeasurementFrequency: _glucoseMeasurementFrequency,
+                    onUsesInsulinChanged: (v) => setState(() => _usesInsulin = v),
+                    onInsulinTypeChanged: (v) => setState(() => _insulinType = v),
+                    onInsulinMethodChanged: (v) => setState(() => _insulinDeliveryMethod = v),
+                    onUsesCgmChanged: (v) => setState(() => _usesCgm = v),
+                    onFrequencyChanged: (v) => setState(() => _glucoseMeasurementFrequency = v),
                   ),
 
-                  _section('Hedefler ve Yaşam Tarzı'),
-                  _accentCard(
-                    accent: AppColors.accentTeal,
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: _field('Hedef Min (mg/dL)', _targetMinCtrl, keyboard: TextInputType.number)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _field('Hedef Max (mg/dL)', _targetMaxCtrl, keyboard: TextInputType.number)),
-                          ],
-                        ),
-                        const SizedBox(height: _gapSm),
-                        Row(
-                          children: [
-                            Expanded(child: _field('Haftalık Egzersiz Günü', _weeklyExerciseCtrl, keyboard: TextInputType.number)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _field('Gecelik Uyku (Saat)', _sleepHoursCtrl, keyboard: TextInputType.number)),
-                          ],
-                        ),
-                        const SizedBox(height: _gapSm),
-                        _goalsField(),
-                      ],
-                    ),
+                  ProfileGoalsLifestyleCard(
+                    targetMinCtrl: _targetMinCtrl,
+                    targetMaxCtrl: _targetMaxCtrl,
+                    weeklyExerciseCtrl: _weeklyExerciseCtrl,
+                    sleepHoursCtrl: _sleepHoursCtrl,
+                    improvementGoals: _improvementGoals,
+                    onGoalsChanged: (v) => setState(() => _improvementGoals = v),
                   ),
 
-                  _section('Güvenlik ve Bildirimler'),
-                  _accentCard(
-                    accent: AppColors.tertiary,
-                    child: Column(
-                      children: [
-                        _switchField('Şiddetli Hipoglisemi Geçmişi', _hasSevereHypoHistory, (v) => setState(() => _hasSevereHypoHistory = v)),
-                        const Divider(height: 16),
-                        _switchField('İlaç Hatırlatıcısı', _reminderMedication, (v) => setState(() => _reminderMedication = v)),
-                        _switchField('Ölçüm Hatırlatıcısı', _reminderMeasurement, (v) => setState(() => _reminderMeasurement = v)),
-                        _switchField('Su Hatırlatıcısı', _reminderWater, (v) => setState(() => _reminderWater = v)),
-                      ],
-                    ),
-                  ),
-
-                  _section('Acil Durum Bilgisi', danger: true),
-                  _accentCard(
-                    accent: AppColors.tertiary,
-                    child: Column(
-                      children: [
-                        ...List.generate(_emergencyContacts.length, (index) {
-                          final contact = _emergencyContacts[index];
-                          return Column(
-                            children: [
-                              if (index > 0) const SizedBox(height: _gapSm),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: _field(
-                                      'Ad Soyad',
-                                      contact.nameController,
-                                      hintText: 'Örn: Ayşe Yılmaz',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _field(
-                                      'Telefon',
-                                      contact.phoneController,
-                                      keyboard: TextInputType.phone,
-                                      hintText: 'Örn: +90 555 123 45 67',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: Icon(
-                                      Icons.delete_outline,
-                                      color: AppColors.tertiary,
-                                      size: 24,
-                                    ),
-                                    onPressed: () => _removeEmergencyContact(index),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-                        }),
-                        const SizedBox(height: _gapSm),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _isLoading ? null : _addEmergencyContact,
-                            icon: const Icon(Icons.add, size: 20),
-                            label: const Text('Kişi Ekle'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.tertiary,
-                              side: BorderSide(color: AppColors.tertiary),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  ProfileEmergencyContactCard(
+                    emergencyContacts: _emergencyContacts,
+                    onAddContact: _addEmergencyContact,
+                    onRemoveContact: _removeEmergencyContact,
+                    isLoading: _isLoading,
                   ),
                 ],
               ),
@@ -611,422 +482,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : _save,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.secondary,
-                      ),
-                    )
-                  : const Icon(Icons.save, color: AppColors.secondary, size: 22),
-              label: Text(
-                'Kaydet',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.secondary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-            ),
+          child: ProfileSaveButton(
+            onPressed: _save,
+            isLoading: _isLoading,
           ),
         ),
       ),
     );
   }
 
-  // ================= UI =================
-
-  Widget _profileHeader(String headerName, String headerMail) {
-    return Column(
-      children: [
-        Center(
-          child: Stack(
-            children: [
-              CircleAvatar(
-                radius: 48, // ✅ Standard size restored
-                backgroundColor: AppColors.surfaceLight,
-                child: Icon(Icons.person, size: 48, color: AppColors.secondary),
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: CircleAvatar(
-                  radius: 16, // ✅ Standard size restored
-                  backgroundColor: AppColors.primary,
-                  child: const Icon(Icons.camera_alt, size: 16, color: AppColors.secondary),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: _gapSm),
-        Text(
-          headerName,
-          style: AppTextStyles.h1.copyWith(fontSize: 19),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          headerMail,
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecLight),
-        ),
-        const SizedBox(height: _gapMd), // ✅
-      ],
-    );
-  }
-
-  Widget _section(String title, {bool danger = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(top: _sectionTop, bottom: _sectionBottom),
-      child: Text(
-        title.toUpperCase(),
-        style: AppTextStyles.body.copyWith(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-          color: danger ? AppColors.tertiary : AppColors.accentTeal,
-        ),
-      ),
-    );
-  }
-
-  Widget _field(
-    String label,
-    TextEditingController c, {
-    TextInputType keyboard = TextInputType.text,
-    String? hintText,
-    IconData? suffixIcon,
-    bool readOnly = false,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel(label),
-        TextFormField(
-          controller: c,
-          keyboardType: keyboard,
-          inputFormatters: inputFormatters,
-          readOnly: readOnly,
-          style: AppTextStyles.body,
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            hintText: hintText,
-            hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
-            filled: true,
-            fillColor: AppColors.backgroundLight,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.accentTeal, width: 1.5),
-            ),
-            suffixIcon: suffixIcon != null
-                ? Icon(suffixIcon, color: AppColors.accentTeal, size: 22)
-                : null,
-          ),
-          validator: (v) {
-            if (label == 'Ad Soyad' && (v == null || v.trim().isEmpty)) {
-              return 'Ad Soyad boş olamaz';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4), // ✅ 6 → 4
-      child: Text(
-        text,
-        style: AppTextStyles.body.copyWith(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: AppColors.accentTeal,
-        ),
-      ),
-    );
-  }
-
-  Widget _genderField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('Cinsiyet'),
-        DropdownButtonFormField<String>(
-          value: _gender,
-          isExpanded: true,
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            hintText: 'Cinsiyet Seçiniz',
-            hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
-            filled: true,
-            fillColor: AppColors.backgroundLight,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-              borderSide: BorderSide(color: AppColors.accentTeal, width: 1.5),
-            ),
-            suffixIcon: Icon(Icons.arrow_drop_down, color: AppColors.accentTeal, size: 22),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'Erkek', child: Text('Erkek')),
-            DropdownMenuItem(value: 'Kadın', child: Text('Kadın')),
-            DropdownMenuItem(value: 'Diğer', child: Text('Diğer')),
-            DropdownMenuItem(value: 'Belirtmek İstemiyorum', child: Text('Belirtmek İstemiyorum')),
-          ],
-          onChanged: (v) => setState(() => _gender = v),
-        ),
-      ],
-    );
-  }
-
-  Widget _dobField() {
-    final text = _dob == null ? '' : _formatDate(_dob);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('Doğum Tarihi'),
-        InkWell(
-          onTap: _isLoading ? null : _pickDob,
-          child: InputDecorator(
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              hintText: 'Örn: 15/05/1990',
-              hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
-              filled: true,
-              fillColor: AppColors.backgroundLight,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: AppColors.accentTeal, width: 1.5),
-              ),
-              suffixIcon: Icon(Icons.calendar_today, color: AppColors.accentTeal, size: 22),
-            ),
-            child: Text(
-              text.isEmpty ? 'Tarih seçiniz' : text,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.body.copyWith(
-                color: text.isEmpty ? Colors.grey : AppColors.secondary,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _accentCard({required Color accent, required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(_cardPadding), // ✅ 16 → 14
-      margin: const EdgeInsets.only(bottom: _cardMarginBottom), // ✅ 12 → 10
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border(left: BorderSide(color: accent, width: 5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-
-  Widget _diabetesTypeField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('Diyabet Tipi'),
-        DropdownButtonFormField<String>(
-          value: _diabetesType,
-          isExpanded: true,
-          decoration: _dropdownDecoration('Diyabet Tipi Seçiniz'),
-          items: const [
-            DropdownMenuItem(value: 'Tip 1', child: Text('Tip 1')),
-            DropdownMenuItem(value: 'Tip 2', child: Text('Tip 2')),
-            DropdownMenuItem(value: 'Gestasyonel', child: Text('Gestasyonel')),
-            DropdownMenuItem(value: 'Prediyabet', child: Text('Prediyabet')),
-          ],
-          onChanged: (v) => setState(() => _diabetesType = v),
-        ),
-      ],
-    );
-  }
-
-  Widget _insulinTypeField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('İnsülin Tipi'),
-        DropdownButtonFormField<String>(
-          value: _insulinType,
-          isExpanded: true,
-          decoration: _dropdownDecoration('İnsülin Tipi Seçiniz'),
-          items: const [
-            DropdownMenuItem(value: 'Hızlı etkili', child: Text('Hızlı etkili')),
-            DropdownMenuItem(value: 'Uzun etkili', child: Text('Uzun etkili')),
-            DropdownMenuItem(value: 'Karma', child: Text('Karma')),
-          ],
-          onChanged: (v) => setState(() => _insulinType = v),
-        ),
-      ],
-    );
-  }
-
-  Widget _insulinMethodField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('İnsülin Uygulama Yöntemi'),
-        DropdownButtonFormField<String>(
-          value: _insulinDeliveryMethod,
-          isExpanded: true,
-          decoration: _dropdownDecoration('Yöntem Seçiniz'),
-          items: const [
-            DropdownMenuItem(value: 'Kalem', child: Text('Kalem')),
-            DropdownMenuItem(value: 'Pompa', child: Text('Pompa')),
-          ],
-          onChanged: (v) => setState(() => _insulinDeliveryMethod = v),
-        ),
-      ],
-    );
-  }
-
-  Widget _frequencyField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('Glikoz Ölçüm Sıklığı'),
-        DropdownButtonFormField<String>(
-          value: _glucoseMeasurementFrequency,
-          isExpanded: true,
-          decoration: _dropdownDecoration('Sıklık Seçiniz'),
-          items: const [
-            DropdownMenuItem(value: 'Günde 1–2 kez', child: Text('Günde 1–2 kez')),
-            DropdownMenuItem(value: 'Günde 3–4 kez', child: Text('Günde 3–4 kez')),
-            DropdownMenuItem(value: 'Günde 5+ kez', child: Text('Günde 5+ kez')),
-            DropdownMenuItem(value: 'Nadiren', child: Text('Nadiren')),
-          ],
-          onChanged: (v) => setState(() => _glucoseMeasurementFrequency = v),
-        ),
-      ],
-    );
-  }
-
-  Widget _goalsField() {
-    final availableGoals = ['Kilo Vermek', 'Daha Aktif Olmak', 'Şeker Dengesini Sağlamak', 'Daha İyi Beslenmek'];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel('Geliştirme Hedefleri'),
-        Wrap(
-          spacing: 8,
-          children: availableGoals.map((goal) {
-            final isSelected = _improvementGoals.contains(goal);
-            return FilterChip(
-              label: Text(goal, style: AppTextStyles.body.copyWith(fontSize: 12, color: isSelected ? Colors.white : AppColors.secondary)),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    _improvementGoals.add(goal);
-                  } else {
-                    _improvementGoals.remove(goal);
-                  }
-                });
-              },
-              selectedColor: AppColors.accentTeal,
-              checkmarkColor: Colors.white,
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _switchField(String label, bool value, ValueChanged<bool> onChanged) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: AppTextStyles.body.copyWith(fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: AppColors.accentTeal,
-        ),
-      ],
-    );
-  }
-
-  InputDecoration _dropdownDecoration(String hint) {
-    return InputDecoration(
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      hintText: hint,
-      hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
-      filled: true,
-      fillColor: AppColors.backgroundLight,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-        borderSide: BorderSide(color: AppColors.accentTeal, width: 1.5),
-      ),
-      suffixIcon: Icon(Icons.arrow_drop_down, color: AppColors.accentTeal, size: 22),
-    );
-  }
 }
