@@ -22,6 +22,7 @@ dependencies:
   provider: ^6.1.2
   intl: ^0.20.1
   http: ^1.6.0
+  flutter_dotenv: ^6.0.0
   
 
 dev_dependencies:
@@ -32,7 +33,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
+ 
   # 
   generate: true
 
@@ -47,5 +48,7 @@ flutter:
           weight: 700
 
   assets:
+    - .env
     # Add assets from the images directory to the application.
     - assets/images/
+    
