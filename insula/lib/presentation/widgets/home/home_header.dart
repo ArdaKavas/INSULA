@@ -56,17 +56,27 @@ class HomeHeader extends StatelessWidget {
               ),
             ],
           ),
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const EmergencyScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.warning_rounded),
-            color: AppColors.tertiary,
-          ),
+          Column(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const EmergencyScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.warning_rounded),
+                color: AppColors.tertiary,
+                iconSize: 30,
+              ),
+              Text(
+                "Acil Durum",
+                style: AppTextStyles.label
+                    .copyWith(fontSize: 10, color: AppColors.tertiary),
+              ),
+            ],
+          )
         ],
       ),
     );
