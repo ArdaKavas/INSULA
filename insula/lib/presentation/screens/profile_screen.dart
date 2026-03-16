@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -11,8 +12,21 @@ import '../widgets/profile/profile_health_info_card.dart';
 import '../widgets/profile/profile_diabetes_profile_card.dart';
 import '../widgets/profile/profile_treatment_tracking_card.dart';
 import '../widgets/profile/profile_goals_lifestyle_card.dart';
+
+import '../widgets/profile/profile_emergency_contact_card.dart';
 import '../widgets/profile/profile_save_button.dart';
 import 'profile_settings_screen.dart';
+
+// Acil durum kişisi için model sınıfı
+class EmergencyContact {
+  final TextEditingController nameController;
+  final TextEditingController phoneController;
+
+  EmergencyContact({
+    required this.nameController,
+    required this.phoneController,
+  });
+}
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -54,6 +68,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _reminderMeasurement = false;
   bool _reminderWater = false;
 
+  List<EmergencyContact> _emergencyContacts = [];
+
+  static const double _cardRadius = 16;
+
   bool _isLoading = true;
   String? _errorText;
 
@@ -80,7 +98,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _targetMaxCtrl.dispose();
     _weeklyExerciseCtrl.dispose();
     _sleepHoursCtrl.dispose();
+    for (var contact in _emergencyContacts) {
+      contact.nameController.dispose();
+      contact.phoneController.dispose();
+    }
     super.dispose();
+  }
+
+  String _formatDate(DateTime? d) {
+    if (d == null) return '';
+    return '${d.day.toString().padLeft(2, '0')}/'
+        '${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
   Future<void> _pickDob() async {
@@ -171,6 +199,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _reminderMeasurement = data['reminderMeasurement'] as bool? ?? false;
       _reminderWater = data['reminderWater'] as bool? ?? false;
 
+      final ec = data['emergencyContacts'];
+      if (ec is List) {
+        for (final c in _emergencyContacts) {
+          c.nameController.dispose();
+          c.phoneController.dispose();
+        }
+        _emergencyContacts = [];
+
+        for (final item in ec) {
+          if (item is Map) {
+            _emergencyContacts.add(EmergencyContact(
+              nameController:
+                  TextEditingController(text: (item['name'] ?? '').toString()),
+              phoneController:
+                  TextEditingController(text: (item['phone'] ?? '').toString()),
+            ));
+          }
+        }
+      }
+
       setState(() => _isLoading = false);
     } catch (e) {
       setState(() {
@@ -178,6 +226,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _addEmergencyContact() {
+    setState(() {
+      _emergencyContacts.add(EmergencyContact(
+        nameController: TextEditingController(),
+        phoneController: TextEditingController(),
+      ));
+    });
+  }
+
+  void _removeEmergencyContact(int index) {
+    setState(() {
+      _emergencyContacts[index].nameController.dispose();
+      _emergencyContacts[index].phoneController.dispose();
+      _emergencyContacts.removeAt(index);
+    });
   }
 
   Future<void> _save() async {
@@ -212,6 +277,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
+      final ecList = _emergencyContacts.map((c) {
+        return {
+          'name': c.nameController.text.trim(),
+          'phone': c.phoneController.text.trim(),
+        };
+      }).toList();
+
       await _firestore.collection('users').doc(user.uid).set({
         'fullName': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
@@ -222,6 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'weight': weight,
         'chronicDiseases': _chronicCtrl.text.trim(),
         'allergies': _allergyCtrl.text.trim(),
+        'emergencyContacts': ecList,
 
         // Save Onboarding Fields
         'diabetesType': _diabetesType,
@@ -261,6 +334,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final headerName =
+        _nameCtrl.text.trim().isEmpty ? 'Ad Soyad' : _nameCtrl.text.trim();
+    final headerMail =
+        _emailCtrl.text.trim().isEmpty ? 'E-posta' : _emailCtrl.text.trim();
+
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
@@ -382,6 +460,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     sleepHoursCtrl: _sleepHoursCtrl,
                     improvementGoals: _improvementGoals,
                     onGoalsChanged: (v) => setState(() => _improvementGoals = v),
+                  ),
+
+                  ProfileEmergencyContactCard(
+                    emergencyContacts: _emergencyContacts,
+                    onAddContact: _addEmergencyContact,
+                    onRemoveContact: _removeEmergencyContact,
+                    isLoading: _isLoading,
                   ),
                 ],
               ),
