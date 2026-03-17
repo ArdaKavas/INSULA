@@ -271,7 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Profil Ayarları',
+          'Profil ',
           style: AppTextStyles.h1.copyWith(color: AppColors.secondary),
         ),
         centerTitle: true,
